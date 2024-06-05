@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Output Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+    </style>
+    {% load static %}
+    <script type="text/javascript" src="{% static 'util/messagingUtil.js' %}"></script>
+    <script type="text/javascript" src="{% static 'util/contentUtil.js' %}"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Output Calculator</h1>
+        <div class="input-group">
+            <label for="userInput">Enter a question:</label>
+            <input type="text" id="userInput" placeholder="Enter a question">
+        </div>
+        <!--<button id="submitButton" onclick="submitQuestion()">Submit</button>-->
+        <button id="submitButton" onclick="submitQuestion()" disabled>Submit</button>
+        <div class="output" id="outputCell"></div>
+        <div class="output" id="rowCountDisplay"></div> <!-- div to display row count -->
+    </div>
+
+    <script>
+
+        async function submitQuestion() {
+            console.log("Submit button clicked"); // Debugging
+            const question = document.getElementById('userInput').value;
+            const outputCell = document.getElementById('outputCell');
+
+            // Display loading message
+            outputCell.textContent = 'Loading...';
+
+            try {
+                const response = await fetch('/ask/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ question })
+                });
+
+                const data = await response.json();
+                outputCell.textContent = data.answer;
+            } catch (error) {
+                console.error('Error:', error);
+                outputCell.textContent = 'Error: Unable to get the answer.';
+            }
+        }
+
+        function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+        // Listening for HTML document completely loaded and parsed, best practice
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("Document loaded"); // Debugging
+            /******************************* Declare variables ***************************************/
+
+            // Sample data message to render outside of VA for debugging
+            const sampleData = {
+                "version": "1",
+                "resultName": "dd77",
+                "rowCount": 3,
+                "availableRowCount": 3,
+                "data": [
+                    [
+                        "Asia"
+                    ],
+                    [
+                        "Europe"
+                    ],
+                    [
+                        "USA"
+                    ]
+                ],
+                "columns": [
+                    {
+                        "name": "bi86",
+                        "label": "Origin",
+                        "type": "string"
+                    }
+                ]
+            }
+
+            // Dynamic data variables
+            let vaMessage; // Data message from VA
+            let vaResult; // Name of DDC object, required to send messages back to VA
+            let rowCount; // Number of rows passed from VA
+            let data; // Data to be parsed from VA data message
+            let colType; // Type of variable passed from VA
+
+            // Selection variables
+            let rowCountDiv;  // Div for photo
+            let submitDiv;  // Div for row
+
+            /******************************* Setup Callback Functions ***************************************/
+            // Attach event for data message from VA
+            va.messagingUtil.setOnDataReceivedCallback(onDataReceived);
+
+            // If not being rendered in iFrame (outside of VA), render with sample data
+            if (!inIframe()) {
+                onDataReceived(sampleData);
+            }
+
+            // Take action on received data
+            function onDataReceived(messageFromVA) {
+                console.log("Data received", messageFromVA); // Debugging
+                // Initialize data variables
+                vaMessage = messageFromVA;
+                vaResult = messageFromVA.resultName;
+                rowCount = messageFromVA.rowCount;
+                colType = messageFromVA.columns[0].type;
+
+                // Validate data roles
+                if (
+                    !va.contentUtil.validateRoles(
+                        messageFromVA, 
+                        ["string"],     // data from DDC object
+                        ["number"]      // additional field for brush column (not needed in this example)
+                    )
+                ) {
+                    // If roles are invalid or no data is being passed, display a message in VA about required roles (requires HTTPS)
+                    va.messagingUtil.postInstructionalMessage(
+                    vaResult,
+                    "This DDC object expects columns to be assigned in this order:\n" +
+                    " 1. Item (string)"
+                );
+                } else {
+                    
+                    // Restructure data from 2d array to array of objects
+                    data = [];
+
+                    for (let i = 0; i < vaMessage.data.length; i++) {
+                        data.push({
+                            item: vaMessage.data[i][0],
+                            index: i
+                        });
+                    }
+                }
+
+                // Display row count in the HTML form
+                const rowCountDiv = document.getElementById('rowCountDisplay');
+                rowCountDiv.innerHTML = 'Number of rows: ' + rowCount + '<br>' +
+                    'Type of column: ' + colType;
+
+                // Enable the submit button after data is received
+                const submitDiv = document.getElementById('submitButton');
+                submitDiv.disabled = false;
+            };
+
+            /******************************** Helper functions *****************************************/
+            function inIframe() {
+                try {
+                    return window.self !== window.top;
+                } catch (e) {
+                    return true;
+                }
+            };
+
+        });
+    </script>
+</body>
+</html>
