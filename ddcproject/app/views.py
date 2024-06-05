@@ -3,10 +3,12 @@ import requests
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_exempt
 import logging
 
 logger = logging.getLogger(__name__)
 
+@xframe_options_exempt
 def index(request):
     return render(request, 'index.html')
 
