@@ -51,9 +51,14 @@
         <button id="submitButton" onclick="submitQuestion()" disabled>Submit</button>
         <div class="output" id="outputCell"></div>
         <div class="output" id="rowCountDisplay"></div> <!-- div to display row count -->
+        <div class="output" id="filteredRowsDisplay"></div> <!-- div to display filtered row IDs -->
     </div>
 
     <script>
+
+        let vaMessage; // Data message from VA
+        let vaResult; // Name of DDC object, required to send messages back to VA
+        let data; // Data to be parsed from VA data message
 
         async function submitQuestion() {
             console.log("Submit button clicked"); // Debugging
@@ -73,8 +78,28 @@
                     body: JSON.stringify({ question })
                 });
 
-                const data = await response.json();
-                outputCell.textContent = data.answer;
+                const jsonResponse = await response.json();
+                outputCell.textContent = jsonResponse.answer;
+                console.log("Type of jsonResponse.answer:", typeof jsonResponse.answer); // Debugging
+                console.log(jsonResponse.answer); // Debugging
+
+                // Filter rows based on the result
+                const filteredRows = [];
+                const trimmedAnswer = jsonResponse.answer.trim().toLowerCase();
+                for (let i = 0; i < vaMessage.data.length; i++) {
+                    const trimmedData = data[i].item.trim().toLowerCase();
+                    console.log("Type of trimmedData:", typeof trimmedData); // Debugging
+                    console.log(trimmedData); // Debugging
+                    if (trimmedData === trimmedAnswer) {
+                        filteredRows.push(i);
+                    }
+                }
+
+                // Display filtered row IDs in filteredRowsDiv and pass them back to VA
+                const rowCountDiv = document.getElementById('filteredRowsDisplay');
+                rowCountDiv.innerHTML = 'Filtered row IDs: ' + filteredRows.join(', ');
+                console.log("Type of filteredRows:", typeof filteredRows); // Debugging
+                va.messagingUtil.postSelectionMessage(vaResult, filteredRows);
             } catch (error) {
                 console.error('Error:', error);
                 outputCell.textContent = 'Error: Unable to get the answer.';
@@ -128,10 +153,10 @@
             }
 
             // Dynamic data variables
-            let vaMessage; // Data message from VA
-            let vaResult; // Name of DDC object, required to send messages back to VA
+            //let vaMessage; // Data message from VA
+            //let vaResult; // Name of DDC object, required to send messages back to VA
             let rowCount; // Number of rows passed from VA
-            let data; // Data to be parsed from VA data message
+            //let data; // Data to be parsed from VA data message
             let colType; // Type of variable passed from VA
 
             // Selection variables
