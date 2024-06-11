@@ -1,5 +1,7 @@
+import os
 import json
 import requests
+from django.conf import settings
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -10,7 +12,22 @@ logger = logging.getLogger(__name__)
 
 @xframe_options_exempt
 def index(request):
-    return render(request, 'index.html')
+    prompt_file_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'system_prompt.txt')
+    sample_data_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'sample_data.json')
+
+    # Load system prompt
+    with open(prompt_file_path, 'r') as file:
+        system_prompt = file.read()
+    
+    # Load sample data
+    with open(sample_data_path, 'r') as file:
+        sample_data = json.load(file)
+
+    # Pass the content to the template
+    return render(request, 'index.html', {
+        'system_prompt': system_prompt,
+        'sample_data': json.dumps(sample_data)  # Pass as a JSON string
+    })
 
 @csrf_exempt
 def ask(request):

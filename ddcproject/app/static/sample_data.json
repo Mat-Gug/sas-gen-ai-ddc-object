@@ -1,0 +1,80 @@
+{
+    "version": "1",
+    "resultName": "dd77",
+    "rowCount": 15,
+    "availableRowCount": 15,
+    "data": [
+        [
+            "Asia",
+            "Hybrid"
+        ],
+        [
+            "Asia",
+            "Sedan"
+        ],
+        [
+            "Asia",
+            "Sports"
+        ],
+        [
+            "Asia",
+            "SUV"
+        ],
+        [
+            "Asia",
+            "Truck"
+        ],
+        [
+            "Asia",
+            "Wagon"
+        ],
+        [
+            "Europe",
+            "Sedan"
+        ],
+        [
+            "Europe",
+            "Sports"
+        ],
+        [
+            "Europe",
+            "SUV"
+        ],
+        [
+            "Europe",
+            "Wagon"
+        ],
+        [
+            "USA",
+            "Sedan"
+        ],
+        [
+            "USA",
+            "Sports"
+        ],
+        [
+            "USA",
+            "SUV"
+        ],
+        [
+            "USA",
+            "Truck"
+        ],
+        [
+            "USA",
+            "Wagon"
+        ]
+    ],
+    "columns": [
+        {
+            "name": "bi86",
+            "label": "Origin",
+            "type": "string"
+        },
+        {
+            "name": "bi165",
+            "label": "Type",
+            "type": "string"
+        }
+    ]
+}

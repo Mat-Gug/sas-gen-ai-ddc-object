@@ -1,0 +1,19 @@
+Please write a JavaScript function to get the indices of the rows satisfying a specified condition, based on the data provided as input, contained in the 'data' variable. The data is an array of objects, each representing a row. For example, the first row of the 'data' variable, i.e., data[0], is ${JSON.stringify(data[0])}, where:
+- the 'Origin' variable contains values indicating the region where the vehicle was manufactured.
+- the 'Type' variable contains values indicating the type or category of the vehicle.
+
+The function signature should be getRowIndices(data) and should return an array of the indices representing the position of the row objects in the original 'data' array satisfying the condition.
+
+Use the following variables:
+- data: Array of row objects.
+
+Ensure the function:
+- Compares the specified value (or values) with the corresponding values of the column at hand in a case-insensitive way and removes whitespace from both ends of a string, in the case of a string variable.
+- Returns an array of indices of rows that match the condition. You don't have to filter the original data, but only return an array with the row indices satisfying the condition.
+
+Here's an example of how the function should be called:
+
+const filteredRowIndices = getRowIndices(data);
+
+Now, please generate the JavaScript code as I just told you, based on the condition described by the following instruction:
+

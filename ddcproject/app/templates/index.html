@@ -44,10 +44,16 @@
     <div class="container">
         <h1>Output Calculator</h1>
         <div class="input-group">
-            <label for="userInput">Enter a question:</label>
+            <label for="sampleQuestions">Select a sample question:</label>
+            <select id="sampleQuestions" onchange="updateUserInput()">
+                <option value="">Select a sample question</option>
+                <option value="Write only the name of the continent where Germany is located.">Write only the name of the continent where Germany is located.</option>
+                <option value="Select the rows with the origin variable being equal to Europe.">Select the rows with the origin variable being equal to Europe.</option>
+                <option value="What is the largest ocean?">What is the largest ocean?</option>
+            </select>
+            <label for="userInput">Or enter a custom question:</label>
             <input type="text" id="userInput" placeholder="Enter a question">
         </div>
-        <!--<button id="submitButton" onclick="submitQuestion()">Submit</button>-->
         <button id="submitButton" onclick="submitQuestion()" disabled>Submit</button>
         <div class="output" id="outputCell"></div>
         <div class="output" id="rowCountDisplay"></div> <!-- div to display row count -->
@@ -58,11 +64,22 @@
 
         let vaMessage; // Data message from VA
         let vaResult; // Name of DDC object, required to send messages back to VA
-        let data; // Data to be parsed from VA data message
+        let data; // Restructured data
+        let columns; // dictionary of the form colId: colName
+
+        // Update the input field with the selected sample question
+        const sampleQuestionsSelect = document.getElementById('sampleQuestions');
+        sampleQuestionsSelect.addEventListener('change', function() {
+            const userInput = document.getElementById('userInput');
+            userInput.value = this.value;
+        });
 
         async function submitQuestion() {
             console.log("Submit button clicked"); // Debugging
-            const question = document.getElementById('userInput').value;
+            const systemPrompt  = `{{ system_prompt|escapejs }}`;
+            console.log(systemPrompt);
+            const prompt = document.getElementById('userInput').value;
+            const question = systemPrompt + prompt;
             const outputCell = document.getElementById('outputCell');
 
             // Display loading message
@@ -79,31 +96,80 @@
                 });
 
                 const jsonResponse = await response.json();
-                outputCell.textContent = jsonResponse.answer;
-                console.log("Type of jsonResponse.answer:", typeof jsonResponse.answer); // Debugging
-                console.log(jsonResponse.answer); // Debugging
+                const answer = jsonResponse.answer;
+                console.log("Type of jsonResponse.answer:", typeof answer); // Debugging
+                console.log(answer); // Debugging
+                
 
-                // Filter rows based on the result
-                const filteredRows = [];
-                const trimmedAnswer = jsonResponse.answer.trim().toLowerCase();
-                for (let i = 0; i < vaMessage.data.length; i++) {
-                    const trimmedData = data[i].item.trim().toLowerCase();
-                    console.log("Type of trimmedData:", typeof trimmedData); // Debugging
-                    console.log(trimmedData); // Debugging
-                    if (trimmedData === trimmedAnswer) {
-                        filteredRows.push(i);
-                    }
+                // Extract the function definition from the answer
+                const functionCode = extractFunctionCode(answer);
+                if (functionCode) {
+                    console.log("Extracted function code:", functionCode); // Debugging
+                    eval(functionCode);
+                } else {
+                    outputCell.textContent = "I'm sorry but I didn't generate the function to perform the selection, or probably I used a wrong name. Please check the code before asking me to try again.";
+                    throw new Error("Function definition not found in the response.");
                 }
+
+                // Get the row IDs based on the generated function
+                const filteredRowIndices = getRowIndices(data);
 
                 // Display filtered row IDs in filteredRowsDiv and pass them back to VA
                 const rowCountDiv = document.getElementById('filteredRowsDisplay');
-                rowCountDiv.innerHTML = 'Filtered row IDs: ' + filteredRows.join(', ');
-                console.log("Type of filteredRows:", typeof filteredRows); // Debugging
-                va.messagingUtil.postSelectionMessage(vaResult, filteredRows);
+                rowCountDiv.innerHTML = 'Filtered row indices: ' + filteredRowIndices.join(', ');
+                console.log("Type of filteredRowIds:", typeof filteredRowIndices); // Debugging
+                va.messagingUtil.postSelectionMessage(vaResult, filteredRowIndices);
+                outputCell.textContent = "The data filtering procedure is now complete. Is the result what you wanted?";
+
+                const buttonContainer = document.createElement('div');
+                const tryAgainButton = document.createElement('button');
+                tryAgainButton.textContent = "No, try again.";
+                tryAgainButton.onclick = submitQuestion;
+                const yesButton = document.createElement('button');
+                yesButton.textContent = "Yes, thank you.";
+                yesButton.onclick = () => {
+                    // Clear selection of drop-down menu
+                    const sampleQuestionsSelect = document.getElementById('sampleQuestions');
+                    sampleQuestionsSelect.selectedIndex = 0;
+
+                    // Clear the output cell
+                    outputCell.textContent = '';
+
+                    // Clear the userInput element
+                    const userInput = document.getElementById('userInput');
+                    userInput.value = '';
+                };
+                buttonContainer.appendChild(tryAgainButton);
+                buttonContainer.appendChild(yesButton);
+                outputCell.appendChild(buttonContainer);
             } catch (error) {
                 console.error('Error:', error);
                 outputCell.textContent = 'Error: Unable to get the answer.';
             }
+        }
+
+        function extractFunctionCode(answer, functionName = 'getRowIndices') {
+            const functionSignature = `function ${functionName}(`;
+            const functionStart = answer.indexOf(functionSignature);
+            if (functionStart === -1) return null;
+
+            let bracketCount = 0;
+            let functionEnd = functionStart;
+
+            while (functionEnd < answer.length) {
+                if (answer[functionEnd] === '{') {
+                    bracketCount++;
+                } else if (answer[functionEnd] === '}') {
+                    bracketCount--;
+                    if (bracketCount === 0) {
+                        functionEnd++;
+                        break;
+                    }
+                }
+                functionEnd++;
+            }
+
+            return answer.substring(functionStart, functionEnd);
         }
 
         function getCookie(name) {
@@ -120,43 +186,25 @@
                 }
                 return cookieValue;
             }
+        
+        function updateUserInput() {
+            const sampleQuestions = document.getElementById('sampleQuestions');
+            const userInput = document.getElementById('userInput');
+            userInput.value = sampleQuestions.value;
+        }
 
         // Listening for HTML document completely loaded and parsed, best practice
         document.addEventListener("DOMContentLoaded", function() {
             console.log("Document loaded"); // Debugging
+
             /******************************* Declare variables ***************************************/
 
             // Sample data message to render outside of VA for debugging
-            const sampleData = {
-                "version": "1",
-                "resultName": "dd77",
-                "rowCount": 3,
-                "availableRowCount": 3,
-                "data": [
-                    [
-                        "Asia"
-                    ],
-                    [
-                        "Europe"
-                    ],
-                    [
-                        "USA"
-                    ]
-                ],
-                "columns": [
-                    {
-                        "name": "bi86",
-                        "label": "Origin",
-                        "type": "string"
-                    }
-                ]
-            }
+            const sampleData = JSON.parse('{{ sample_data|safe }}');
+            console.log(sampleData);
 
             // Dynamic data variables
-            //let vaMessage; // Data message from VA
-            //let vaResult; // Name of DDC object, required to send messages back to VA
             let rowCount; // Number of rows passed from VA
-            //let data; // Data to be parsed from VA data message
             let colType; // Type of variable passed from VA
 
             // Selection variables
@@ -179,13 +227,13 @@
                 vaMessage = messageFromVA;
                 vaResult = messageFromVA.resultName;
                 rowCount = messageFromVA.rowCount;
-                colType = messageFromVA.columns[0].type;
+                colType = messageFromVA.columns.map(col => col.type);
 
                 // Validate data roles
                 if (
                     !va.contentUtil.validateRoles(
                         messageFromVA, 
-                        ["string"],     // data from DDC object
+                        ["string", "string"],     // data from DDC object
                         ["number"]      // additional field for brush column (not needed in this example)
                     )
                 ) {
@@ -193,18 +241,20 @@
                     va.messagingUtil.postInstructionalMessage(
                     vaResult,
                     "This DDC object expects columns to be assigned in this order:\n" +
-                    " 1. Item (string)"
+                    " 1. Origin (string)\n 2. Type (string)"
                 );
                 } else {
                     
-                    // Restructure data from 2d array to array of objects
+                    // Restructure data from 2D array to array of objects
                     data = [];
-
+                    const columns = messageFromVA.columns.map(col => col.label);
+                    console.log("Column dictionary", columns); // Debugging
                     for (let i = 0; i < vaMessage.data.length; i++) {
-                        data.push({
-                            item: vaMessage.data[i][0],
-                            index: i
-                        });
+                        let rowObj = {};
+                        for (let j = 0; j < columns.length; j++) {
+                            rowObj[columns[j]] = vaMessage.data[i][j];
+                        }
+                        data.push(rowObj);
                     }
                 }
 
