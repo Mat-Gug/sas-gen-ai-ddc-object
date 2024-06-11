@@ -54,7 +54,11 @@
             <label for="userInput">Or enter a custom question:</label>
             <input type="text" id="userInput" placeholder="Enter a question">
         </div>
-        <button id="submitButton" onclick="submitQuestion()" disabled>Submit</button>
+        <!--<button id="submitButton" onclick="submitQuestion()" disabled>Submit</button>-->
+        <div class="button-container" id="buttonContainer">
+            <button id="submitButton" onclick="submitQuestion()" disabled>Submit</button>
+            <button id="removeSelectionButton" onclick="removeSelection()" style="display: none;">Remove Selection</button>
+        </div>
         <div class="output" id="outputCell"></div>
         <div class="output" id="rowCountDisplay"></div> <!-- div to display row count -->
         <div class="output" id="filteredRowsDisplay"></div> <!-- div to display filtered row IDs -->
@@ -138,6 +142,10 @@
                     // Clear the userInput element
                     const userInput = document.getElementById('userInput');
                     userInput.value = '';
+
+                    // Show the "Remove Selection" button
+                    const removeSelectionButton = document.getElementById('removeSelectionButton');
+                    removeSelectionButton.style.display = 'inline-block';
                 };
                 buttonContainer.appendChild(tryAgainButton);
                 buttonContainer.appendChild(yesButton);
@@ -191,6 +199,20 @@
             const sampleQuestions = document.getElementById('sampleQuestions');
             const userInput = document.getElementById('userInput');
             userInput.value = sampleQuestions.value;
+        }
+
+        function removeSelection() {
+            // Clear the selection (you can modify this according to how you're storing the selection)
+            // For example, if you're storing the selection in an array, you can empty the array
+            const RowIndices = [];
+            for (let i = 0; i < vaMessage.data.length; i++) {
+                RowIndices.push(i);
+            }
+            va.messagingUtil.postSelectionMessage(vaResult, RowIndices);
+
+            // Optionally, hide the removeSelectionButton after removing the selection
+            const removeSelectionButton = document.getElementById('removeSelectionButton');
+            removeSelectionButton.style.display = 'none';
         }
 
         // Listening for HTML document completely loaded and parsed, best practice
